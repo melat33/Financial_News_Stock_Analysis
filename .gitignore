@@ -1,0 +1,7 @@
+#virtual 
+venv/
+#data
+data/
+
+
+__pycache__/
