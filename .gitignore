@@ -1,12 +1,11 @@
-<<<<<<< HEAD
 #virtual 
 venv/
+.venv/
 #data
 data/
 
 
 __pycache__/
-=======
 #virtual enviroment
 venv/
 
@@ -15,4 +14,4 @@ data/
 
 __pycache__/
 *.pyc
->>>>>>> b82fff6bc287f27cbcf7098e0b6a5874bf96d43b
+__pycache__
