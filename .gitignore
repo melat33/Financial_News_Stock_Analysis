@@ -1,8 +1,34 @@
-#virtual enviroment
-venv/
-
-#Data
-data/
-
+# Python
+*.py[cod]
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data Files
+data/
+*.csv
+*.tsv
+*.sqlite
+*.db
+
+# Log files
+*.log
+
+# Virtual environment
+env/
+venv/
+.venv/
+ENV/
+.env/
+
+# IDE-specific files
+
+.idea/
+*.swp
+
+# Output files
+output/
