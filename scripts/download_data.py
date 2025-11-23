@@ -1,118 +1,238 @@
-# 📁 scripts/download_data.py
+#!/usr/bin/env python3
+"""
+Task 1 - News Data Download Only
+Downloads/Creates financial news data for sentiment analysis
+"""
+
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import pandas as pd
 import numpy as np
-from src.config import RAW_DIR, TICKERS
+from datetime import datetime, timedelta
 
-def create_sample_news_data():
-    """Create realistic sample news data for EDA analysis focused on 6 companies"""
-    news_file = os.path.join(RAW_DIR, "raw_analyst_ratings.csv")
+# Add the project root to Python path to fix import issues
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
+print(f"📁 Project root: {project_root}")
+
+# Configuration for Task 1
+TICKERS = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'META', 'NVDA']
+DATA_DIR = os.path.join(project_root, 'data')
+RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw')
+NEWS_FILE = os.path.join(RAW_DATA_DIR, 'financial_news.csv')
+
+def create_directories():
+    """Create necessary directories"""
+    directories = [RAW_DATA_DIR, os.path.join(project_root, 'reports')]
     
-    if os.path.exists(news_file):
-        print("✅ News file already exists")
-        return
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
+        print(f"✅ Created: {directory}")
+
+def create_realistic_news_data():
+    """Create realistic financial news data for Task 1"""
+    print("📰 CREATING REALISTIC FINANCIAL NEWS DATA...")
     
-    print("📰 CREATING SAMPLE NEWS DATA FOR 6 COMPANIES...")
-    print(f"🏢 Companies: {TICKERS}")
-    
-    # Sample publishers (mix of organizations and emails)
-    publishers = [
-        'Bloomberg', 'Reuters', 'CNBC', 'Wall Street Journal',
-        'analyst@morganstanley.com', 'research@goldmansachs.com',
-        'markets@bankofamerica.com', 'equity@citigroup.com'
-    ]
-    
-    # Generate sample data
     sample_news = []
+    current_date = datetime.now()
     
-    # Date range for sample data
-    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')
+    # Realistic news templates for each company
+    news_templates = {
+        'AAPL': [
+            "Apple Reports Strong iPhone Sales in Q{} {}",
+            "Apple Announces New {} with Enhanced Features",
+            "Analysts {} Apple Stock Amid {} Market Conditions",
+            "Apple {} Exceeds Expectations in {} Markets",
+            "Apple Faces {} Challenges in {} Division"
+        ],
+        'MSFT': [
+            "Microsoft {} Cloud Services Show {} Growth",
+            "Windows {} Update Brings New {} Features",
+            "Microsoft {} Division Reports {} Results",
+            "Analysts {} Microsoft Amid {} Developments",
+            "Microsoft Expands {} Partnerships in {}"
+        ],
+        'GOOG': [
+            "Google {} Revenue Grows {}% in Latest Report",
+            "Alphabet Announces {} Initiatives for {}",
+            "Google {} Faces {} Regulatory Scrutiny",
+            "Analysts {} Google Stock After {} Announcement",
+            "Google Expands {} Services to {} Markets"
+        ],
+        'AMZN': [
+            "Amazon {} Sales Surge {}% in Quarter",
+            "AWS {} Services Experience {} Growth",
+            "Amazon Expands {} Delivery in {} Regions",
+            "Analysts {} Amazon Amid {} Market Trends",
+            "Amazon {} Division Launches {} Features"
+        ],
+        'META': [
+            "Meta {} Platform Gains {} Million New Users",
+            "Facebook Parent Reports {} in {} Revenue",
+            "Meta {} Initiative Shows {} Progress",
+            "Analysts {} Meta Stock After {} Results",
+            "Meta Expands {} Services to {} Countries"
+        ],
+        'NVDA': [
+            "NVIDIA {} Chips Drive {}% Revenue Growth",
+            "AI Boom Fuels NVIDIA {} Sales in {}",
+            "NVIDIA Announces {} Partnerships for {}",
+            "Analysts {} NVIDIA Amid {} Market Demand",
+            "NVIDIA {} Technology Adopted by {} Companies"
+        ]
+    }
     
-    for i, date in enumerate(dates):
-        if np.random.random() > 0.3:  # 70% chance of having news each day
-            num_articles = np.random.poisson(8)  # Average 8 articles per news day
-            
-            for j in range(num_articles):
-                company = np.random.choice(TICKERS)
-                publisher = np.random.choice(publishers)
-                
-                # Company-specific headline templates
-                headline_templates = {
-                    "AAPL": [
-                        f"AAPL unveils new iPhone with {np.random.choice(['5G', 'AI', 'camera'])} features",
-                        f"Apple Q{np.random.randint(1,5)} earnings {np.random.choice(['beat', 'miss'])} expectations",
-                        f"AAPL stock {np.random.choice(['rises', 'falls'])} on {np.random.choice(['iPhone sales', 'services growth', 'China market'])} news"
-                    ],
-                    "AMZN": [
-                        f"Amazon AWS growth {np.random.choice(['accelerates', 'slows'])} in Q{np.random.randint(1,5)}",
-                        f"AMZN {np.random.choice(['expands', 'cuts'])} {np.random.choice(['delivery network', 'cloud services', 'workforce'])}",
-                        f"Amazon Q{np.random.randint(1,5)} revenue {np.random.choice(['exceeds', 'misses'])} estimates"
-                    ],
-                    "GOOG": [
-                        f"Google {np.random.choice(['launches', 'updates'])} {np.random.choice(['AI features', 'search algorithm', 'cloud platform'])}",
-                        f"Alphabet Q{np.random.randint(1,5)} {np.random.choice(['ad revenue', 'cloud revenue'])} {np.random.choice(['surges', 'declines'])}",
-                        f"GOOGL stock reacts to {np.random.choice(['regulatory', 'antitrust', 'privacy'])} news"
-                    ],
-                    "META": [
-                        f"Meta Platforms {np.random.choice(['introduces', 'expands'])} {np.random.choice(['metaverse', 'VR', 'AI'])} initiatives",
-                        f"Facebook parent Q{np.random.randint(1,5)} {np.random.choice(['user growth', 'ad revenue'])} {np.random.choice(['strong', 'weak'])}",
-                        f"META {np.random.choice(['partners with', 'acquires'])} {np.random.choice(['AI startup', 'gaming company'])}"
-                    ],
-                    "MSFT": [
-                        f"Microsoft Azure growth {np.random.choice(['accelerates', 'moderates'])} in Q{np.random.randint(1,5)}",
-                        f"MSFT {np.random.choice(['announces', 'launches'])} new {np.random.choice(['Windows', 'Office', 'cloud'])} features",
-                        f"Microsoft Q{np.random.randint(1,5)} earnings {np.random.choice(['beat', 'meet', 'miss'])} expectations"
-                    ],
-                    "NVDA": [
-                        f"NVIDIA {np.random.choice(['reports', 'forecasts'])} {np.random.choice(['strong', 'weak'])} {np.random.choice(['AI chip', 'gaming'])} demand",
-                        f"NVDA stock {np.random.choice(['surges', 'drops'])} on {np.random.choice(['earnings', 'guidance', 'partnership'])} news",
-                        f"NVIDIA Q{np.random.randint(1,5)} {np.random.choice(['data center', 'gaming'])} revenue {np.random.choice(['exceeds', 'misses'])} estimates"
-                    ]
-                }
-                
-                # Get company-specific headlines
-                company_headlines = headline_templates.get(company, [
-                    f"{company} Q{np.random.randint(1,5)} earnings {np.random.choice(['beat', 'miss'])} expectations",
-                    f"Analyst {np.random.choice(['upgrades', 'downgrades'])} {company} to {np.random.choice(['Buy', 'Sell', 'Hold'])}",
-                    f"{company} stock {np.random.choice(['rises', 'falls'])} on {np.random.choice(['news', 'earnings', 'guidance'])}"
-                ])
-                
-                headline = np.random.choice(company_headlines)
-                
-                sample_news.append({
-                    'date': date.strftime('%Y-%m-%d'),
-                    'stock': company,
-                    'headline': headline,
-                    'publisher': publisher
-                })
+    # Fillers for templates
+    fillers_1 = ['Q3', 'Q4', 'Q1', 'Q2', 'Latest', 'New', 'Premium', 'Enterprise', 'Cloud', 'Mobile']
+    fillers_2 = ['Record', 'Strong', 'Impressive', 'Moderate', 'Steady', 'Rapid', 'Significant']
+    actions = ['Upgrade', 'Downgrade', 'Maintain', 'Reiterate', 'Initiate Coverage']
+    conditions = ['Bullish', 'Bearish', 'Volatile', 'Stable', 'Challenging', 'Optimistic']
     
-    # Create DataFrame and save
-    news_df = pd.DataFrame(sample_news)
-    news_df.to_csv(news_file, index=False)
+    # Create 250 realistic news articles
+    for i in range(250):
+        date = current_date - timedelta(days=np.random.randint(1, 180))  # Last 6 months
+        ticker = TICKERS[i % len(TICKERS)]
+        
+        # Select template and fill with realistic data
+        template = np.random.choice(news_templates[ticker])
+        
+        # Generate realistic headline
+        if '{}' in template:
+            headline = template.format(
+                np.random.choice(fillers_1),
+                np.random.choice(fillers_2)
+            )
+        else:
+            headline = template
+        
+        # Realistic publishers
+        publishers = [
+            'Financial Times', 'Bloomberg', 'Reuters', 
+            'Wall Street Journal', 'MarketWatch', 'CNBC',
+            'Forbes', 'Business Insider', 'Yahoo Finance'
+        ]
+        
+        # Realistic sentiment based on content
+        positive_words = ['Strong', 'Growth', 'Record', 'Exceeds', 'Gains', 'Expands', 'Boom']
+        negative_words = ['Faces', 'Challenges', 'Scrutiny', 'Downgrade', 'Bearish']
+        
+        sentiment = 'neutral'
+        if any(word in headline for word in positive_words):
+            sentiment = 'positive'
+        elif any(word in headline for word in negative_words):
+            sentiment = 'negative'
+        
+        sample_news.append({
+            'date': date.strftime('%Y-%m-%d %H:%M:%S'),
+            'headline': headline,
+            'stock': ticker,
+            'publisher': np.random.choice(publishers),
+            'sentiment': sentiment,
+            'article_id': f"NEWS{1000 + i}",
+            'word_count': len(headline.split())
+        })
     
-    print(f"✅ Sample news data created: {news_file}")
-    print(f"   📰 {len(news_df)} total articles")
-    print(f"   🏢 {news_df['publisher'].nunique()} unique publishers")
-    print(f"   💼 Companies covered: {sorted(news_df['stock'].unique())}")
-    print(f"   📅 Date range: {news_df['date'].min()} to {news_df['date'].max()}")
+    # Create DataFrame
+    df = pd.DataFrame(sample_news)
+    
+    # Sort by date (newest first)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values('date', ascending=False)
+    
+    # Save to CSV
+    df.to_csv(NEWS_FILE, index=False)
+    
+    print(f"✅ Created realistic news data: {len(df)} articles")
+    print(f"💾 Saved to: {NEWS_FILE}")
+    
+    return df
+
+def validate_news_data():
+    """Validate the created news data"""
+    print("\n🔍 VALIDATING NEWS DATA...")
+    
+    if not os.path.exists(NEWS_FILE):
+        print("❌ News file not found")
+        return False
+    
+    try:
+        df = pd.read_csv(NEWS_FILE)
+        df['date'] = pd.to_datetime(df['date'])
+        
+        print(f"📊 Total Articles: {len(df):,}")
+        print(f"📅 Date Range: {df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}")
+        print(f"🏢 Companies: {df['stock'].nunique()} - {', '.join(sorted(df['stock'].unique()))}")
+        print(f"📰 Publishers: {df['publisher'].nunique()}")
+        
+        # Sentiment distribution
+        if 'sentiment' in df.columns:
+            sentiment_counts = df['sentiment'].value_counts()
+            print(f"😊 Sentiment: {sentiment_counts.to_dict()}")
+        
+        # Articles per company
+        print(f"\n📈 Articles per Company:")
+        company_counts = df['stock'].value_counts()
+        for company, count in company_counts.items():
+            percentage = (count / len(df)) * 100
+            print(f"   • {company}: {count} articles ({percentage:.1f}%)")
+        
+        # Sample headlines
+        print(f"\n📋 SAMPLE HEADLINES:")
+        for i, row in df.head(5).iterrows():
+            print(f"   • [{row['stock']}] {row['headline']}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Validation error: {e}")
+        return False
+
+def check_existing_data():
+    """Check if data already exists"""
+    if os.path.exists(NEWS_FILE):
+        df = pd.read_csv(NEWS_FILE)
+        print(f"📰 Existing news data found: {len(df)} articles")
+        
+        response = input("🔄 Do you want to recreate the news data? (y/n): ").strip().lower()
+        return response not in ['y', 'yes']
+    return False
 
 def main():
-    """Main function to create sample data for 6 companies"""
-    print("🚀 TASK 1: CREATING SAMPLE NEWS DATA FOR 6 COMPANIES")
+    """Main function"""
+    print("🚀 TASK 1 - NEWS DATA DOWNLOAD")
     print("=" * 60)
-    print(f"📊 Companies: {TICKERS}")
     
-    # Create directory
-    os.makedirs(RAW_DIR, exist_ok=True)
+    # Create directories
+    create_directories()
     
-    # Create sample data
-    create_sample_news_data()
+    # Check existing data
+    if check_existing_data():
+        print("✅ Using existing news data")
+        validate_news_data()
+        return
     
-    print("\n🎉 DATA READY FOR EDA ANALYSIS!")
-    print("💡 Next: Run python scripts/run_eda.py to start analysis")
+    # Create news data
+    news_df = create_realistic_news_data()
+    
+    # Validate data
+    if validate_news_data():
+        print("\n🎉 TASK 1 DATA READY!")
+        print("=" * 60)
+        print("📰 News data is now available for:")
+        print("   • Exploratory Data Analysis (EDA)")
+        print("   • Sentiment Analysis")
+        print("   • News trend analysis")
+        print("   • Company-specific news analysis")
+        
+        print(f"\n📁 File location: {NEWS_FILE}")
+        print(f"📊 Data summary: {len(news_df)} articles, {news_df['stock'].nunique()} companies")
+        
+        print("\n🎯 NEXT STEP:")
+        print("   Run: python scripts/run_eda.py")
+        print("   Or: jupyter notebook notebooks/01_eda_news_sentiment.ipynb")
+    else:
+        print("❌ Failed to create valid news data")
 
 if __name__ == "__main__":
     main()
