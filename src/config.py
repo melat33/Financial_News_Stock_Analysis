@@ -1,59 +1,29 @@
-# 📁 config.py - UPDATED FOR TASK 2
+# src/config.py - Unified for both Task 1 and Task 2
 import os
 
-# Project paths - FIXED: removed one os.path.dirname
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-RAW_DIR = os.path.join(DATA_DIR, "raw")
-PRICES_DIR = os.path.join(DATA_DIR, "price")
-PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
-TECHNICAL_DIR = os.path.join(PROCESSED_DIR, "technical_indicators")
+# Project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The 6 companies we're analyzing
-TICKERS = ["AAPL", "AMZN", "GOOG", "META", "MSFT", "NVDA"]
+# Stock tickers to analyze
+TICKERS = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'META', 'NVDA']
 
-# News file
-NEWS_FILE = os.path.join(RAW_DIR, "raw_analyst_ratings.csv")
+# File paths
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw')
+PROCESSED_DATA_DIR = os.path.join(DATA_DIR, 'processed')
+PRICES_DIR = os.path.join(DATA_DIR, 'price')
+TECHNICAL_DIR = os.path.join(DATA_DIR, 'technical')  # Add this line
+REPORTS_DIR = os.path.join(PROJECT_ROOT, 'reports')
+PLOTS_DIR = os.path.join(REPORTS_DIR, 'plots')
 
-# Technical Analysis Configuration
-TECHNICAL_INDICATORS = {
-    'moving_averages': [5, 10, 20, 50, 200],
-    'rsi_period': 14,
-    'macd_fast': 12,
-    'macd_slow': 26, 
-    'macd_signal': 9,
-    'bollinger_period': 20,
-    'bollinger_std': 2,
-    'stochastic_period': 14,
-    'adx_period': 14,
-    'atr_period': 14
-}
+# News data file
+NEWS_FILE = os.path.join(RAW_DATA_DIR, 'financial_news.csv')
 
-# Trading Strategy Parameters
-TRADING_STRATEGY = {
-    'rsi_oversold': 30,
-    'rsi_overbought': 70,
-    'signal_threshold_buy': 0.3,
-    'signal_threshold_sell': -0.3,
-    'volume_threshold': 1.2  # 20% above average volume
-}
+# Technical analysis settings
+TECHNICAL_INDICATORS = ['SMA', 'EMA', 'RSI', 'MACD', 'BB', 'Stoch']
 
-# Visualization Settings
-CHART_STYLES = {
-    'company_colors': {
-        'AAPL': '#A2AAAD', 'AMZN': '#FF9900', 'GOOG': '#4285F4',
-        'META': '#1877F2', 'MSFT': '#737373', 'NVDA': '#76B900'
-    },
-    'chart_size': (15, 8),
-    'style': 'seaborn-v0_8'
-}
+# Create directories if they don't exist
+for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, PRICES_DIR, TECHNICAL_DIR, REPORTS_DIR, PLOTS_DIR]:
+    os.makedirs(directory, exist_ok=True)
 
-# Create directories
-os.makedirs(RAW_DIR, exist_ok=True)
-os.makedirs(PRICES_DIR, exist_ok=True)
-os.makedirs(PROCESSED_DIR, exist_ok=True)
-os.makedirs(TECHNICAL_DIR, exist_ok=True)
-
-print("✅ Configuration loaded for Task 2 - Technical Analysis")
-print(f"📊 Analyzing {len(TICKERS)} companies: {TICKERS}")
-print(f"📈 Technical indicators configured: {len(TECHNICAL_INDICATORS)} parameters")
+print("✅ Configuration loaded successfully!")
