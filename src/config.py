@@ -1,23 +1,28 @@
-# 📁 src/config.py
+# src/config.py - Unified for both Task 1 and Task 2
 import os
 
-# Project paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-RAW_DIR = os.path.join(DATA_DIR, "raw")
-PRICES_DIR = os.path.join(DATA_DIR, "prices")
-PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
+# Project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The 6 companies we're analyzing
-TICKERS = ["AAPL", "AMZN", "GOOG", "META", "MSFT", "NVDA"]
+# Stock tickers to analyze
+TICKERS = ['AAPL', 'MSFT', 'GOOG', 'AMZN', 'META', 'NVDA']
 
-# News file
-NEWS_FILE = os.path.join(RAW_DIR, "raw_analyst_ratings.csv")
+# File paths
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+RAW_DATA_DIR = os.path.join(DATA_DIR, 'raw')
+PROCESSED_DATA_DIR = os.path.join(DATA_DIR, 'processed')
+PRICES_DIR = os.path.join(DATA_DIR, 'price')
+REPORTS_DIR = os.path.join(PROJECT_ROOT, 'reports')
+PLOTS_DIR = os.path.join(REPORTS_DIR, 'plots')
 
-# Create directories
-os.makedirs(RAW_DIR, exist_ok=True)
-os.makedirs(PRICES_DIR, exist_ok=True)
-os.makedirs(PROCESSED_DIR, exist_ok=True)
+# News data file
+NEWS_FILE = os.path.join(RAW_DATA_DIR, 'financial_news.csv')
 
-print("✅ Configuration loaded")
-print(f"📊 Analyzing 6 companies: {TICKERS}")
+# Technical analysis settings
+TECHNICAL_INDICATORS = ['SMA', 'EMA', 'RSI', 'MACD', 'BB', 'Stoch']
+
+# Create directories if they don't exist
+for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, PRICES_DIR, REPORTS_DIR, PLOTS_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
+print("✅ Configuration loaded successfully!")
