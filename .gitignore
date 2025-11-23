@@ -1,6 +1,7 @@
 # Python
 *.py[cod]
 __pycache__/
+__pycache__
 *.py[cod]
 *.pyo
 *.pyd
@@ -21,14 +22,15 @@ data/
 # Virtual environment
 env/
 venv/
-.venv/
 ENV/
 .env/
+.venv/
 
 # IDE-specific files
-
+.vscode/
 .idea/
 *.swp
 
 # Output files
 output/
+notebooks/*.ipynb
