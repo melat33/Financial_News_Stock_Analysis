@@ -5,74 +5,104 @@ import sys
 import os
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-
+sys.path.append('../src')
 from technical_analyzer import TechnicalAnalyzer
 
 class TestTechnicalAnalyzer(unittest.TestCase):
     
     def setUp(self):
         """Set up test data"""
-        dates = pd.date_range(start='2023-01-01', end='2023-03-01', freq='D')
-        np.random.seed(42)
+        self.analyzer = TechnicalAnalyzer()
         
+        # Create sample price data
+        dates = pd.date_range('2023-01-01', periods=100, freq='D')
         self.sample_data = pd.DataFrame({
-            'Open': 100 + np.cumsum(np.random.randn(len(dates)) * 0.5),
-            'High': 100 + np.cumsum(np.random.randn(len(dates)) * 0.5) + np.random.rand(len(dates)),
-            'Low': 100 + np.cumsum(np.random.randn(len(dates)) * 0.5) - np.random.rand(len(dates)),
-            'Close': 100 + np.cumsum(np.random.randn(len(dates)) * 0.5),
-            'Volume': np.random.randint(1000000, 5000000, len(dates))
-        }, index=dates)
+            'Date': dates,
+            'Open': np.random.normal(100, 10, 100).cumsum() + 100,
+            'High': np.random.normal(105, 12, 100).cumsum() + 100,
+            'Low': np.random.normal(95, 12, 100).cumsum() + 100,
+            'Close': np.random.normal(100, 10, 100).cumsum() + 100,
+            'Volume': np.random.randint(1000000, 50000000, 100),
+            'Stock': 'TEST'
+        })
         
-        self.analyzer = TechnicalAnalyzer(self.sample_data)
+        # Ensure High is highest, Low is lowest
+        self.sample_data['High'] = self.sample_data[['Open', 'Close', 'High']].max(axis=1) + 2
+        self.sample_data['Low'] = self.sample_data[['Open', 'Close', 'Low']].min(axis=1) - 2
+        
+        # Save test data
+        os.makedirs('../data/prices', exist_ok=True)
+        self.sample_data.to_csv('../data/prices/TEST_prices.csv', index=False)
     
-    def test_data_validation(self):
-        """Test data validation"""
-        self.assertTrue(self.analyzer.validate_data())
+    def test_load_price_data(self):
+        """Test loading price data"""
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        self.assertFalse(df.empty)
+        self.assertIn('Close', df.columns)
+        self.assertIn('Volume', df.columns)
     
     def test_moving_averages(self):
-        """Test moving average calculations"""
-        result = self.analyzer.calculate_moving_averages()
-        self.assertIn('SMA_20', result.columns)
-        self.assertIn('EMA_12', result.columns)
-        self.assertFalse(result['SMA_20'].isnull().all())
+        """Test moving average calculation"""
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        df = self.analyzer.calculate_moving_averages(df, [20, 50])
+        
+        self.assertIn('SMA_20', df.columns)
+        self.assertIn('SMA_50', df.columns)
+        self.assertFalse(df['SMA_20'].isna().all())
     
     def test_rsi_calculation(self):
         """Test RSI calculation"""
-        result = self.analyzer.calculate_rsi()
-        self.assertIn('RSI', result.columns)
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        df = self.analyzer.calculate_rsi(df)
+        
+        self.assertIn('RSI', df.columns)
         # RSI should be between 0 and 100
-        self.assertTrue((result['RSI'].dropna() >= 0).all())
-        self.assertTrue((result['RSI'].dropna() <= 100).all())
+        self.assertTrue((df['RSI'].dropna() <= 100).all())
+        self.assertTrue((df['RSI'].dropna() >= 0).all())
     
     def test_macd_calculation(self):
         """Test MACD calculation"""
-        result = self.analyzer.calculate_macd()
-        self.assertIn('MACD', result.columns)
-        self.assertIn('MACD_Signal', result.columns)
-        self.assertIn('MACD_Histogram', result.columns)
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        df = self.analyzer.calculate_macd(df)
+        
+        self.assertIn('MACD', df.columns)
+        self.assertIn('MACD_Signal', df.columns)
+        self.assertIn('MACD_Histogram', df.columns)
     
     def test_bollinger_bands(self):
         """Test Bollinger Bands calculation"""
-        result = self.analyzer.calculate_bollinger_bands()
-        self.assertIn('BB_Upper', result.columns)
-        self.assertIn('BB_Lower', result.columns)
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        df = self.analyzer.calculate_bollinger_bands(df)
+        
+        self.assertIn('BB_Upper', df.columns)
+        self.assertIn('BB_Middle', df.columns)
+        self.assertIn('BB_Lower', df.columns)
         # Upper band should be higher than lower band
-        self.assertTrue((result['BB_Upper'] > result['BB_Lower']).all())
+        self.assertTrue((df['BB_Upper'] > df['BB_Lower']).all())
     
-    def test_all_indicators(self):
-        """Test calculation of all indicators"""
-        result = self.analyzer.calculate_all_indicators()
-        expected_indicators = ['SMA_20', 'RSI', 'MACD', 'BB_Upper', 'Stoch_K']
-        for indicator in expected_indicators:
-            self.assertIn(indicator, result.columns)
+    def test_performance_metrics(self):
+        """Test performance metrics calculation"""
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        metrics = self.analyzer.calculate_performance_metrics(df)
+        
+        self.assertIsInstance(metrics, dict)
+        self.assertIn('total_return', metrics)
+        self.assertIn('volatility', metrics)
+        self.assertIn('sharpe_ratio', metrics)
     
     def test_signal_generation(self):
         """Test trading signal generation"""
-        self.analyzer.calculate_all_indicators()
-        signals = self.analyzer.get_signals()
-        self.assertIn('RSI_Overbought', signals.columns)
-        self.assertIn('MACD_Bullish', signals.columns)
+        df = self.analyzer.load_price_data('../data/prices/TEST_prices.csv')
+        df = self.analyzer.calculate_rsi(df)
+        df = self.analyzer.calculate_macd(df)
+        df = self.analyzer.calculate_bollinger_bands(df)
+        df = self.analyzer.generate_signals(df)
+        
+        self.assertIn('RSI_Signal', df.columns)
+        self.assertIn('MACD_Signal', df.columns)
+        self.assertIn('BB_Signal', df.columns)
+        self.assertIn('Combined_Signal', df.columns)
 
 if __name__ == '__main__':
-    unittest.main()
+    # Run tests
+    unittest.main(verbosity=2)

@@ -1,176 +1,94 @@
-# 📁 src/text_analyzer.py
+# src/text_analyzer.py
 import pandas as pd
 import numpy as np
-import re
-from collections import Counter
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.sentiment import SentimentIntensityAnalyzer
-from src.config import TICKERS
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from pathlib import Path
 
-# Download required NLTK data
-try:
-    nltk.download('vader_lexicon', quiet=True)
-    nltk.download('stopwords', quiet=True)
-    nltk.download('punkt', quiet=True)
-except:
-    print("⚠️  NLTK downloads failed - using fallback methods")
+# Import config using absolute path to avoid circular imports
+import sys
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+from src.config import SENTIMENT_DIR, SENTIMENT_CONFIG
 
 class TextAnalyzer:
+    """Sentiment analysis for financial news"""
+    
     def __init__(self):
-        self.stop_words = set(stopwords.words('english'))
-        self.sia = SentimentIntensityAnalyzer()
+        self.vader_analyzer = SentimentIntensityAnalyzer()
+    
+    def analyze_sentiment(self, news_df):
+        """Perform comprehensive sentiment analysis on news headlines"""
+        print("😊 Analyzing news sentiment...")
         
-        # Company-specific keywords for topic modeling
-        self.company_keywords = {
-            "AAPL": ['iphone', 'ios', 'mac', 'ipad', 'app store', 'tim cook', 'apple watch'],
-            "AMZN": ['aws', 'amazon web services', 'prime', 'bezos', 'ecommerce', 'delivery'],
-            "GOOG": ['google', 'alphabet', 'search', 'youtube', 'android', 'sundar pichai'],
-            "META": ['facebook', 'instagram', 'whatsapp', 'metaverse', 'zuckerberg', 'vr'],
-            "MSFT": ['microsoft', 'azure', 'windows', 'office', 'satya nadella', 'cloud'],
-            "NVDA": ['nvidia', 'gpu', 'ai chips', 'cuda', 'jensen huang', 'graphics']
-        }
+        if news_df.empty:
+            print("❌ No news data to analyze")
+            return pd.DataFrame()
         
-        # General financial keywords
-        self.financial_keywords = [
-            'earnings', 'revenue', 'profit', 'loss', 'growth', 'dividend', 
-            'stock', 'share', 'price', 'target', 'upgrade', 'downgrade',
-            'quarter', 'q1', 'q2', 'q3', 'q4', 'guidance', 'forecast',
-            'beat', 'miss', 'expectations', 'analyst', 'rating', 'buy', 'sell'
-        ]
-
-    def clean_text(self, text):
-        """Clean and preprocess text with robust error handling"""
-        if pd.isna(text) or not isinstance(text, str):
-            return ""
+        # Make a copy to avoid modifying original
+        df = news_df.copy()
         
-        text = str(text).lower()
-        text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation
-        text = re.sub(r'\d+', '', text)  # Remove numbers
-        return text.strip()
-
-    def extract_keywords(self, text, top_n=10):
-        """Extract top keywords from text with error handling"""
-        text = self.clean_text(text)
-        if not text:
-            return []
-            
-        try:
-            tokens = word_tokenize(text)
-            words = [word for word in tokens if word not in self.stop_words and len(word) > 2]
-            return Counter(words).most_common(top_n)
-        except:
-            return []
-
-    def analyze_sentiment(self, text):
-        """Analyze sentiment using VADER with error handling"""
-        if pd.isna(text) or not isinstance(text, str):
-            return {
-                'sentiment_compound': 0.0,
-                'sentiment_positive': 0.0,
-                'sentiment_negative': 0.0,
-                'sentiment_neutral': 1.0
-            }
-            
-        try:
-            scores = self.sia.polarity_scores(text)
-            return {
-                'sentiment_compound': scores['compound'],
-                'sentiment_positive': scores['pos'],
-                'sentiment_negative': scores['neg'],
-                'sentiment_neutral': scores['neu']
-            }
-        except:
-            return {
-                'sentiment_compound': 0.0,
-                'sentiment_positive': 0.0,
-                'sentiment_negative': 0.0,
-                'sentiment_neutral': 1.0
-            }
-
-    def detect_topics(self, text, company):
-        """Detect topics in headlines with error handling"""
-        if pd.isna(text) or not isinstance(text, str):
-            return []
-            
-        try:
-            text_lower = text.lower()
-            topics = []
-            
-            # Check company-specific topics
-            for keyword in self.company_keywords.get(company, []):
-                if keyword in text_lower:
-                    topics.append(keyword)
-            
-            # Check financial topics
-            for keyword in self.financial_keywords:
-                if keyword in text_lower:
-                    topics.append(keyword)
-            
-            return topics
-        except:
-            return []
-
-    def analyze_headline_features(self, df):
-        """Add text analysis features to dataframe with robust error handling"""
-        print("🔤 Analyzing headline features...")
-        
-        # First, clean the data - handle missing headlines
-        if 'headline' not in df.columns:
-            print("❌ No 'headline' column found in dataframe")
-            return df
-            
-        # Check for missing headlines
-        missing_headlines = df['headline'].isna().sum()
-        if missing_headlines > 0:
-            print(f"⚠️  Found {missing_headlines} missing headlines - filling with empty strings")
-            df['headline'] = df['headline'].fillna('')
-        
-        # Ensure all headlines are strings
-        df['headline'] = df['headline'].astype(str)
-        
-        # Basic text features
-        df['headline_clean'] = df['headline'].apply(self.clean_text)
-        df['headline_length'] = df['headline'].str.len()
-        df['word_count'] = df['headline'].str.split().str.len()
-        
-        # Handle empty headlines for average word length
-        df['avg_word_length'] = df['headline_clean'].apply(
-            lambda x: np.mean([len(word) for word in x.split()]) if x.strip() else 0
+        # TextBlob sentiment
+        print("   Calculating TextBlob sentiment...")
+        df['textblob_sentiment'] = df['headline'].apply(
+            lambda x: TextBlob(str(x)).sentiment.polarity if pd.notna(x) else 0
         )
         
-        # Sentiment analysis with error handling
-        print("   😊 Performing sentiment analysis...")
-        sentiment_scores = df['headline'].apply(self.analyze_sentiment)
-        sentiment_df = pd.json_normalize(sentiment_scores)
-        df = pd.concat([df, sentiment_df], axis=1)
-        
-        # Topic detection with error handling
-        print("   🏷️  Detecting topics...")
-        df['topics'] = df.apply(
-            lambda row: self.detect_topics(row['headline'], row['stock']), axis=1
+        # VADER sentiment
+        print("   Calculating VADER sentiment...")
+        df['vader_sentiment'] = df['headline'].apply(
+            lambda x: self.vader_analyzer.polarity_scores(str(x))['compound'] if pd.notna(x) else 0
         )
-        df['topic_count'] = df['topics'].str.len()
         
-        print(f"✅ Added {len(sentiment_df.columns)} text features")
+        # Combined sentiment (average of both)
+        df['combined_sentiment'] = (df['textblob_sentiment'] + df['vader_sentiment']) / 2
+        
+        # Sentiment categories
+        df['sentiment_category'] = df['combined_sentiment'].apply(self._categorize_sentiment)
+        
+        print(f"✅ Sentiment analysis completed: {len(df)} articles")
+        print(f"   Sentiment range: {df['combined_sentiment'].min():.3f} to {df['combined_sentiment'].max():.3f}")
+        
         return df
+    
+    def calculate_daily_sentiment(self, sentiment_df):
+        """Calculate daily sentiment aggregates by company"""
+        print("📊 Calculating daily sentiment aggregates...")
+        
+        daily_sentiment = sentiment_df.groupby(['date', 'stock']).agg({
+            'textblob_sentiment': ['mean', 'count'],
+            'vader_sentiment': ['mean', 'count'],
+            'combined_sentiment': ['mean', 'std', 'count'],
+            'sentiment_category': lambda x: x.mode()[0] if len(x.mode()) > 0 else 'Neutral'
+        }).round(4)
+        
+        # Flatten column names
+        daily_sentiment.columns = [
+            'textblob_mean', 'textblob_count',
+            'vader_mean', 'vader_count', 
+            'combined_mean', 'combined_std', 'combined_count',
+            'dominant_category'
+        ]
+        
+        daily_sentiment = daily_sentiment.reset_index()
+        
+        # Save daily sentiment
+        SENTIMENT_DIR.mkdir(parents=True, exist_ok=True)
+        output_path = SENTIMENT_DIR / 'daily_sentiment.csv'
+        daily_sentiment.to_csv(output_path, index=False)
+        print(f"💾 Daily sentiment saved: {output_path}")
+        
+        return daily_sentiment
+    
+    def _categorize_sentiment(self, score):
+        """Categorize sentiment score"""
+        if score >= SENTIMENT_CONFIG['positive_threshold']:
+            return "Positive"
+        elif score <= SENTIMENT_CONFIG['negative_threshold']:
+            return "Negative"
+        else:
+            return "Neutral"
 
-    def get_company_keyword_summary(self, df):
-        """Get keyword summary by company with error handling"""
-        print("\n🏷️  Generating keyword analysis by company...")
-        
-        keyword_summary = {}
-        for company in TICKERS:
-            company_news = df[df['stock'] == company]
-            if len(company_news) == 0:
-                keyword_summary[company] = []
-                continue
-                
-            all_text = ' '.join(company_news['headline_clean'].astype(str))
-            keywords = self.extract_keywords(all_text, top_n=15)
-            keyword_summary[company] = keywords
-            
-            print(f"   {company}: {[kw[0] for kw in keywords[:5]]}")
-        
-        return keyword_summary
+# Create and export the instance
+text_analyzer = TextAnalyzer()
